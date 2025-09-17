@@ -3,94 +3,154 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Traffic Management UI</title>
+  <title>Smart Traffic Management Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
   <style>
-    :root{--bg:#f3f4f6; --card:#fff; --muted:#6b7280;}
-    body{margin:0;font-family:Arial,sans-serif;background:var(--bg);}
-    .container{max-width:1200px;margin:20px auto;padding:18px}
-    .grid{display:grid;gap:12px}
-    .grid.cols-2{grid-template-columns:repeat(2,1fr)}
-    .card{background:var(--card);padding:12px;border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,0.1)}
-    .video-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;height:500px}
-    .video-box{position:relative;background:black;border-radius:8px;overflow:hidden}
-    .video-box img{width:100%;height:100%;object-fit:cover}
-    .live-badge{position:absolute;top:8px;left:8px;background:rgba(0,0,0,0.6);padding:4px 8px;border-radius:6px;color:white;font-size:12px;font-weight:bold;display:flex;align-items:center}
-    .live-badge .dot{width:8px;height:8px;border-radius:50%;background:red;margin-right:6px;animation:pulse 1s infinite}
-    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-    .sig-row{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;border:1px solid #ddd;background:#fafafa}
-    .circle{width:12px;height:12px;border-radius:50%}
+    body {
+      background-color: #111827;
+      color: #f9fafb;
+    }
+    .card {
+      background-color: #1e293b;
+      color: #f1f5f9;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .video-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .video-card {
+      background: black;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+    .video-card img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .video-card .live-badge {
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      background: red;
+      border-radius: 50%;
+      display: inline-block;
+      animation: blink 1s infinite;
+    }
+    @keyframes blink {
+      0%, 50%, 100% { opacity: 1; }
+      25%, 75% { opacity: 0; }
+    }
+    .signals {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .signal {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: bold;
+      color: white;
+    }
+    .green { background: #10b981; }
+    .yellow { background: #f59e0b; }
+    .red { background: #ef4444; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Traffic Management Dashboard</h1>
+  <!-- Navbar -->
+  <nav class="d-flex justify-content-between align-items-center px-4 py-2" style="background:#1f2937; color:white;">
+    <h1 class="h5 m-0">🚦 Smart Traffic Dashboard</h1>
+    <div>
+      <a href="/" style="color:white; margin:0 10px; text-decoration:none;">Home</a>
+      <a href="/dashboard" style="color:white; margin:0 10px; text-decoration:none;">Dashboard</a>
+    </div>
+  </nav>
 
-    <main class="grid cols-2">
-      <!-- LIVE MONITORING -->
-      <section class="card">
-        <h2>Live Monitoring</h2>
-        <div class="video-grid">
-          <div class="video-box">
-            <img src="/video_feed/0" alt="Camera 1">
-            <div class="live-badge"><span class="dot"></span> LIVE</div>
-          </div>
-          <div class="video-box">
-            <img src="/video_feed/1" alt="Camera 2">
-            <div class="live-badge"><span class="dot"></span> LIVE</div>
-          </div>
-          <div class="video-box">
-            <img src="/video_feed/2" alt="Camera 3">
-            <div class="live-badge"><span class="dot"></span> LIVE</div>
-          </div>
-          <div class="video-box">
-            <img src="/video_feed/3" alt="Camera 4">
-            <div class="live-badge"><span class="dot"></span> LIVE</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- SIGNAL STATUS -->
-      <aside class="card">
-        <h2>Traffic Signal Status</h2>
-        <div id="signalsList" style="display:flex;flex-direction:column;gap:8px"></div>
-      </aside>
-    </main>
-  </div>
-
-  <script>
-  async function loadSignals() {
-    try {
-      const res = await fetch("/api/signals");
-      const signals = await res.json();
-
-      const container = document.getElementById("signalsList");
-      container.innerHTML = "";
-
-      signals.forEach(sig => {
-        const row = document.createElement("div");
-        row.className = "sig-row";
-        row.innerHTML = `
-          <div style="display:flex;align-items:center;gap:8px">
-            <div class="circle" style="background:${sig.status==="GREEN"?"#10b981":sig.status==="YELLOW"?"#f59e0b":"#ef4444"}"></div>
-            <div>
-              <div style="font-weight:600">${sig.lane}</div>
-              <div style="font-size:12px;color:var(--muted)">Vehicles: ${sig.vehicles}</div>
+  <!-- Layout -->
+  <div class="container mt-3">
+    <div class="row">
+      <!-- Left side: Videos -->
+      <div class="col-md-8">
+        <div class="card">
+          <h2>Live Streams</h2>
+          <div class="video-grid">
+            <!-- Four camera feeds -->
+            <div class="video-card">
+              <img src="{{ url_for('video_feed', cam_id=0) }}">
+              <div class="live-badge"><span class="dot"></span> LIVE</div>
+              <div class="label">Lane 1</div>
+            </div>
+            <div class="video-card">
+              <img src="{{ url_for('video_feed', cam_id=1) }}">
+              <div class="live-badge"><span class="dot"></span> LIVE</div>
+              <div class="label">Lane 2</div>
+            </div>
+            <div class="video-card">
+              <img src="{{ url_for('video_feed', cam_id=2) }}">
+              <div class="live-badge"><span class="dot"></span> LIVE</div>
+              <div class="label">Lane 3</div>
+            </div>
+            <div class="video-card">
+              <img src="{{ url_for('video_feed', cam_id=3) }}">
+              <div class="live-badge"><span class="dot"></span> LIVE</div>
+              <div class="label">Lane 4</div>
             </div>
           </div>
-          <div style="text-align:right">
-            <div style="font-weight:bold;color:${sig.status==="GREEN"?"green":sig.status==="YELLOW"?"orange":"red"}">${sig.status}</div>
-            <div style="font-size:12px;color:var(--muted)">${sig.status==="RED" ? "Next GREEN in" : "Remaining"}: ${sig.remaining}s</div>
-          </div>
-        `;
-        container.appendChild(row);
-      });
-    } catch (err) {
-      console.error("Failed to load signals:", err);
-    }
-  }
+        </div>
+      </div>
 
-  setInterval(loadSignals, 1000); // update every second
-  loadSignals();
+      <!-- Right side: Signals -->
+      <div class="col-md-4">
+        <div class="card">
+          <h2>Traffic Signals</h2>
+          <div class="signals" id="signalsGrid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script to fetch live signals -->
+  <script>
+    async function loadSignals() {
+      const res = await fetch("/api/signals");
+      const signals = await res.json();
+      const grid = document.getElementById("signalsGrid");
+      grid.innerHTML = "";
+      signals.forEach(sig => {
+        const div = document.createElement("div");
+        div.className = `signal ${sig.status.toLowerCase()}`;
+        div.innerHTML = `
+          <span>${sig.lane} (${sig.vehicles} vehicles)</span>
+          <span>${sig.status} - ${sig.remaining}s</span>
+        `;
+        grid.appendChild(div);
+      });
+    }
+    setInterval(loadSignals, 1000); // refresh every second
+    loadSignals();
   </script>
 </body>
 </html>
