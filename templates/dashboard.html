@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Traffic Dashboard</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      background-color: #111827;
+      color: #f9fafb;
+    }
+    .card {
+      background-color: #1e293b;
+      color: #f1f5f9;
+      border-radius: 12px;
+    }
+    .status-green { color: #22c55e; font-weight: bold; }
+    .status-yellow { color: #facc15; font-weight: bold; }
+    .status-red { color: #ef4444; font-weight: bold; }
+    nav {
+      background: #1f2937;
+      color: white;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    nav h1 { margin: 0; font-size: 20px; }
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 20px;
+      margin: 0;
+      padding: 0;
+    }
+    nav ul li a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    nav ul li a:hover {
+      text-decoration: underline;
+    }
+    /* Separator row style */
+    .separator-row td {
+      border-top: 2px solid #facc15;
+      padding: 0;
+      height: 4px;
+      background-color: #374151;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- Navbar -->
+<nav>
+  <h1>🚦 Smart Traffic Dashboard</h1>
+  <ul>
+    <li><a href="/">Home</a></li>
+    <li><a href="/dashboard">Dashboard</a></li>
+    <li><a href="/api/logs">Historical Data</a></li>
+    <li><a href="/api/signals">Analytics</a></li>
+  </ul>
+</nav>
+
+<!-- Dashboard Summary -->
+<div class="container my-4">
+  <h3 class="mb-4">Smart Traffic Control Center</h3>
+  <div class="row g-3">
+    <div class="col-md-3">
+      <div class="card p-3 text-center">
+        <h6>Total Intersections</h6>
+        <h3 id="totalIntersections">--</h3>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3 text-center">
+        <h6>Active Systems</h6>
+        <h3 id="activeSystems">--</h3>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3 text-center">
+        <h6>Avg Wait Time</h6>
+        <h3 id="avgWait" class="status-yellow">--</h3>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3 text-center">
+        <h6>System Efficiency</h6>
+        <h3 id="efficiency" class="status-green">--%</h3>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Historical Data from DB -->
+<div class="container mt-5">
+  <h4>Stored Traffic Data (DB)</h4>
+  <table class="table table-dark table-striped">
+    <thead>
+      <tr>
+        <th>Timestamp</th>
+        <th>Lane</th>
+        <th>Vehicle Count</th>
+      </tr>
+    </thead>
+    <tbody id="logsTable">
+      <!-- Filled dynamically -->
+    </tbody>
+  </table>
+</div>
+
+<!-- JS -->
+<script>
+  // Update dashboard cards
+  async function updateStats() {
+    try {
+      const res = await fetch("/api/stats");
+      const data = await res.json();
+
+      document.getElementById("totalIntersections").innerText = data.total_intersections;
+      document.getElementById("activeSystems").innerText = data.active_systems;
+      document.getElementById("avgWait").innerText = data.avg_wait_time + "s";
+      document.getElementById("efficiency").innerText = data.efficiency + "%";
+    } catch (e) {
+      console.error("Failed to fetch stats:", e);
+    }
+  }
+
+  // Update DB logs table with timestamp separators
+  async function updateLogs() {
+    try {
+      const res = await fetch("/api/logs");
+      const logs = await res.json();
+
+      const tbody = document.getElementById("logsTable");
+      tbody.innerHTML = ""; // clear old rows
+
+      let lastTimestamp = null;
+
+      logs.forEach(log => {
+        // If timestamp changes, add a separator row
+        if (lastTimestamp && log.timestamp !== lastTimestamp) {
+          const separator = document.createElement("tr");
+          separator.classList.add("separator-row");
+          separator.innerHTML = `<td colspan="3"></td>`;
+          tbody.appendChild(separator);
+        }
+
+        // Normal data row
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${log.timestamp}</td>
+          <td>Lane ${log.lane}</td>
+          <td>${log.vehicles}</td>
+        `;
+        tbody.appendChild(row);
+
+        lastTimestamp = log.timestamp;
+      });
+    } catch (e) {
+      console.error("Failed to fetch logs:", e);
+    }
+  }
+
+  // Refresh every 1 second
+  setInterval(() => {
+    updateStats();
+    updateLogs();
+  }, 1000);
+
+  // Run immediately on page load
+  updateStats();
+  updateLogs();
+</script>
+
+</body>
+</html>
